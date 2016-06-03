@@ -78,34 +78,33 @@ public class LocalizationManager implements LocalizationService {
       rebuildCache = configMap.remove( bundle.getBundleId() ) != null;
     }
 
-    if ( bundle.getState() == Bundle.ACTIVE ) {
-      Map<String, OSGIResourceBundleFactory> configEntry = new HashMap<String, OSGIResourceBundleFactory>();
-      OSGIResourceBundleFactory bundleFactory;
-      Enumeration<URL> urlEnumeration =
-        bundle.findEntries( OSGIResourceNamingConvention.RESOURCES_ROOT_FOLDER,
-          "*" + OSGIResourceNamingConvention.RESOURCES_DEFAULT_EXTENSION + "*", true );
-      if ( urlEnumeration != null ) {
-        while ( urlEnumeration.hasMoreElements() ) {
-          URL url = urlEnumeration.nextElement();
-          if ( url != null ) {
-            String fileName = url.getFile();
-            String relativeName = getPropertyRelativeName( fileName );
-            String name = getPropertyName( fileName );
-            int priority = getPropertyPriority( fileName );
-            bundleFactory = new OSGIResourceBundleFactory( name, relativeName, url, priority );
-            configEntry.put( name, bundleFactory );
-            rebuildCache = true;
-          }
+    Map<String, OSGIResourceBundleFactory> configEntry = new HashMap<String, OSGIResourceBundleFactory>();
+    OSGIResourceBundleFactory bundleFactory;
+    Enumeration<URL> urlEnumeration =
+      bundle.findEntries( OSGIResourceNamingConvention.RESOURCES_ROOT_FOLDER,
+        "*" + OSGIResourceNamingConvention.RESOURCES_DEFAULT_EXTENSION + "*", true );
+    if ( urlEnumeration != null ) {
+      while ( urlEnumeration.hasMoreElements() ) {
+        URL url = urlEnumeration.nextElement();
+        if ( url != null ) {
+          String fileName = url.getFile();
+          String relativeName = getPropertyRelativeName( fileName );
+          String name = getPropertyName( fileName );
+          int priority = getPropertyPriority( fileName );
+          bundleFactory = new OSGIResourceBundleFactory( name, relativeName, url, priority );
+          configEntry.put( name, bundleFactory );
+          rebuildCache = true;
         }
-      }
-
-      if ( !configEntry.isEmpty() ) {
-        synchronized ( configMap ) {
-          configMap.put( bundle.getBundleId(), configEntry );
-        }
-        rebuildCache = true;
       }
     }
+
+    if ( !configEntry.isEmpty() ) {
+      synchronized ( configMap ) {
+        configMap.put( bundle.getBundleId(), configEntry );
+      }
+      rebuildCache = true;
+    }
+
     if ( rebuildCache ) {
       synchronized ( configMap ) {
         if ( executorService == null ) {
@@ -132,6 +131,9 @@ public class LocalizationManager implements LocalizationService {
    * @return
    */
   private String getPropertyRelativeName( String fileName ) {
+    if ( fileName.indexOf( "/" ) == 0 ) {
+      fileName = fileName.substring( 1 );
+    }
     Matcher matcher = OSGIResourceNamingConvention.getResourceNameMatcher( fileName );
     String groop = matcher.group( matcher.groupCount() );
     if ( groop != null ) {
